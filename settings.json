@@ -1,6 +1,6 @@
 {
-    "id": "aws",
-    "filter": "microsoft devops database ",
+    "id": "VMware-Scripts",
+    "filter": "devops",
     "image": "http://code.purestorage.com/images/image2.png",
     "featured": 1,
     "priority": 1
