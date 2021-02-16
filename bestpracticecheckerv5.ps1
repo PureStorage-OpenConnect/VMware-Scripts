@@ -27,7 +27,7 @@ Notes:
 -iSCSI Configurations where Port Binding is not used will throw an error, but are still supported
  Please consult VMware KB article https://kb.vmware.com/s/article/2038869 
 
-For info, refer to https://www.jasemccarty.com/blog/ (post coming)
+For info, refer to https://www.jasemccarty.com/blog/updated-purestorage-fa-bp-checker-for-vsphere/
 #>
 
 $iopsvalue = 1
