@@ -1,5 +1,6 @@
 {
     "id": "vmware-scripts",
+    "name": "VMware Sample Scripts",
     "filter": "devops",
     "image": "http://code.purestorage.com/images/image2.png",
     "featured": 1,
