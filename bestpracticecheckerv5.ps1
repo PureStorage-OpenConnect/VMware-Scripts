@@ -210,7 +210,7 @@ Foreach ($Esx in $Hosts)
         $maxiosize = $Esx | Get-AdvancedSetting -Name Disk.DiskMaxIOSize
         if ($maxiosize.value -gt $MaxIORecommended) {
             $EsxError = $true
-            Add-Content $Logfile "    FAIL - Disk.DiskMaxIOSize too high ($($maxiosize.value) KB) - Recommended $MaxIOReommended KB"
+            Add-Content $Logfile "    FAIL - Disk.DiskMaxIOSize too high ($($maxiosize.value) KB) - Recommended $MaxIORecommended KB"
         }
         else {
             Add-Content $Logfile "    PASS - Disk.DiskMaxIOSize is set properly."
