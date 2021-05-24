@@ -84,18 +84,24 @@ If ($Global:DefaultVIServer) {
     Write-Host "Connected to " -NoNewline 
     Write-Host $Global:DefaultVIServer -ForegroundColor Green
 } else {
+    # If not connected to vCenter Server make a connection
     Write-Host "Not connected to vCenter Server" -ForegroundColor Red
     $VIFQDN = Read-Host "Please enter the vCenter Server FQDN"  
+    # Prompt for credentials using the native PowerShell Get-Credential cmdlet
     $VICredentials = Get-Credential -Message "Enter credentials for vCenter Server" 
     try {
+        # Attempt to connect to the vCenter Server 
         Connect-VIServer -Server $VIFQDN -Credential $VICredentials -ErrorAction Stop | Out-Null
         Write-Host "Connected to $VIFQDN" -ForegroundColor Green 
+        # Note that we connected to vCenter so we can disconnect upon termination
         $ConnectVc = $True
     }
     catch {
+        # If we could not connect to vCenter report that and exit the script
         Write-Host "Failed to connect to $VIFQDN" -BackgroundColor Red
         Write-Host $Error
         Write-Host "Terminating the script " -BackgroundColor Red
+        # Note that we did not connect to vCenter Server
         $ConnectVc = $False
         return
     }
@@ -160,7 +166,7 @@ if ($clusterChoice -match "[yY]") {
     $Hosts = Get-VMHost | Sort-Object Name 
 }
 
-
+# Begin the main execution of the script
 $errorHosts = @()
 Write-Host "Executing..."
 Add-Content $Logfile "Iterating through all ESXi hosts..."
@@ -270,12 +276,22 @@ Foreach ($Esx in $Hosts)
         Add-Content $Logfile "  Checking for FlashArray iSCSI targets and verify their configuration on the host. Only misconfigured iSCSI targets will be reported."
         $iscsitofix = @()
         $flasharrayiSCSI = $false
+
+        # Get a list of all of the Pure Storage iSCSI Targets (if any)
         $targets = $esxcli.iscsi.adapter.target.portal.list.Invoke().where{$_.Target -Like "*purestorage*"}
+
+        # Store the iSCSI Software Adaper in a variable
         $iscsihba = $Esx | Get-VMHostHba |Where-Object{$_.Model -eq "iSCSI Software Adapter"}
+
+        # Store any Static targets 
         $statictgts = $iscsihba | Get-IScsiHbaTarget -type static
+
+        # Enumerate through all iSCSI targets
         Foreach ($target in $targets) {
             if ($target) {
                 $flasharrayiSCSI = $true
+
+                # Check for DelayedACK = False and LoginTimeout = 30
                 Foreach ($statictgt in $statictgts) {
                     if ($target.IP -eq $statictgt.Address) {
                         $iscsioptions = $statictgt.ExtensionData.AdvancedOptions
@@ -286,6 +302,7 @@ Foreach ($Esx in $Hosts)
                         if (($iscsiack -eq $true) -or ($iscsitimeout -ne 30)) {
                             if ($iscsiack -eq $true) {$iscsiack = "Enabled"}
                             else {$iscsiack = "Disabled"}
+                            # Create an object to better report iSCSI targets
                             $iscsitgttofix = new-object psobject -Property @{
                                 TargetIP = $target.IP
                                 TargetIQN = $target.Target
@@ -298,7 +315,7 @@ Foreach ($Esx in $Hosts)
                 }
             }
         }
-
+        # If there are any iSCSI targets with issues, report them here
         if ($iscsitofix.count -ge 1)
         {
             $EsxError = $true
@@ -321,6 +338,8 @@ Foreach ($Esx in $Hosts)
     
         Add-Content $Logfile "  -------------------------------------------------------------------------------------------------------------------------------------------"
         Add-Content $Logfile "  Checking for Software iSCSI Network Port Bindings."
+
+        # Check for network port binding configuration
         if ($flasharrayiSCSI -eq $true)
         {
             $iSCSInics = $Esxcli.iscsi.networkportal.list.invoke()
@@ -385,13 +404,14 @@ Foreach ($Esx in $Hosts)
         }
 
 
-        # Check the rules
+        # Check the NMP rules
 
         Add-Content $Logfile "  -------------------------------------------------------------------------------------------------------------------------------------------"
         Add-Content $Logfile "  Checking VMware NMP Multipathing configuration for FlashArray devices."
         $rules = $Esxcli.storage.nmp.satp.rule.list.invoke() | Where-Object {$_.Vendor -eq "PURE"}
         $correctrule = 0
 
+        # If vSphere 7, default to Latency, otherwise use IOPS=1
         Switch ($HostVersionMajor) {
             "7" { $SatpOption = "policy";$SatpType="latency"}
             default { $SatpOption = "iops";$SatpType="iops"}
