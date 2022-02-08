@@ -1,5 +1,5 @@
 <#==========================================================================
-Script Name: RemovePre65PureUserRules
+Script Name: Remove-PureUserRules.ps1
 Created on: 12/20/2021
 Updated on:  2/08/2021
 Created by: Jase McCarty
