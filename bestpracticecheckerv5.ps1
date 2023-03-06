@@ -196,7 +196,7 @@ Foreach ($Esx in $Hosts)
         # vSphere 6.x requires IOPS=1 & vSphere 7.0 uses the Latency policy
         # DiskMaxIO is 4MB for older versions of vSphere & the default of 32MB for more recent versions
         Switch ($HostVersionMajor) {
-            "7" { $MaxIORecommended = "32767";$PspOptions="policy=latency";$SatpType="latency"}
+            {"7","8"} { $MaxIORecommended = "32767";$PspOptions="policy=latency";$SatpType="latency"}
             "5" { $MaxIORecommended = "4096";$PspOptions="iops=1";$SatpType="iops"}
             default {
                 Switch ($HostVersionMinor) {
@@ -413,7 +413,7 @@ Foreach ($Esx in $Hosts)
 
         # If vSphere 7, default to Latency, otherwise use IOPS=1
         Switch ($HostVersionMajor) {
-            "7" { $SatpOption = "policy";$SatpType="latency"}
+            {"7","8"}  { $SatpOption = "policy";$SatpType="latency"}
             default { $SatpOption = "iops";$SatpType="iops"}
         }
 
@@ -447,7 +447,7 @@ Foreach ($Esx in $Hosts)
 
                 # SATP Rule Check 
                 Switch ($HostVersionMajor) {
-                    "7" {
+                    {"7","8"}  {
                         if ($rule.PSPOptions -ne "policy=latency") {
                             $EsxError = $true
                             Add-Content $Logfile "      FAIL - This Pure Storage FlashArray rule is NOT configured with the correct Policy = Latency: $($rule.PSPOptions)"
@@ -492,7 +492,7 @@ Foreach ($Esx in $Hosts)
             Add-Content $Logfile "      FAIL - No correct SATP rule for the Pure Storage FlashArray is found"
             Add-Content $LogFile "      A new rule should be created that is set Round Robin" -NoNewline
             Switch ($HostVersionMajor) {
-                "7" { Add-Content $LogFile " using the Latency policy"}
+                {"7","8"}  { Add-Content $LogFile " using the Latency policy"}
                 default { Add-Content $LogFile " and an IO Opeations limit of $($iopsvalue)"}
             }
         }
@@ -533,7 +533,7 @@ Foreach ($Esx in $Hosts)
                         $deviceconfig = $Esxcli.storage.nmp.psp.roundrobin.deviceconfig.get.invoke($deviceargs)
 
                         Switch ($HostVersionMajor) {
-                            "7" {
+                            {"7","8"}  {
                                 if ($deviceconfig.LimitType -ne "Latency")
                                 {
                                     $deviops = $true
