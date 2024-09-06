@@ -8,14 +8,14 @@ SOFTWARE.
 Original Script: https://github.com/bdwill/vvolsreadinesschecker/blob/master/VVolsReadinessChecker.ps1
 Original Author: Brandon Willmott (@bdwill)
  Updated Script: https://github.com/PureStorage-OpenConnect/VMware-Scripts/blob/master/vVolsReadinessCheckerV2.ps1
- Updated Script: Jase McCarty (@jasemccarty)
- Updated Date  : 2 MARCH 2021
+ Updated Script: David Stevenes (@PSUStevens)
+ Updated Date  : 1 October 2024
 ************************************************************************************************************************************************************
 
 This script will:
--Check for VVols Readiness
---Check for Purity 5.3.6+
---Check for vCenter 6.5+ and ESXi 6.5+ (6.5 Update 1 is highly recommended)
+--Check for VVols Readiness
+--Check for Purity 6.5+
+--Check for vCenter 7.0U3+ and ESXi 7.0U3+ (7.0 Update 3 is highly recommended)
 --Check that FlashArray is accessible on TCP port 8084
 --Check that a NTP server is set, valid, and daemon running on ESXi hosts and FlashArray
 --Check for replication, remote side needs to meet above criteria too!
@@ -25,9 +25,9 @@ All information logged to a file.
 This can be run directly from PowerCLI or from a standard PowerShell prompt. PowerCLI must be installed on the local host regardless.
 
 Supports:
--FlashArray //m, //x, //c
--vCenter 6.5 and later
--PowerCLI 10.0 or later required
+-FlashArray //X, //C, //XL
+-vCenter 7.0U3 and later
+-PowerCLI VMware PowerCLI 13.3 Build 24145081 or later required
 
 #>
 
@@ -90,7 +90,7 @@ Function Get-VAMITime {
             Connect-CisServer -Server 192.168.1.51 -User administrator@vsphere.local -Password VMware1!
             Get-VAMITime
         .NOTES
-            Modified script to account for Newer VCSA. Script supports 6.5 and 6.7 VCSAs
+            Modified script to account for Newer VCSA. Script supports 7.0+ VCSAs
     #>
         $systemTimeAPI = ( Get-VAMIServiceAPI -NameFilter "system.time")
         $timeResults = $systemTimeAPI.get()
@@ -148,19 +148,19 @@ add-content $logfile '         \++++++++++++\'
 add-content $logfile '          \++++++++++++\'
 add-content $logfile '           \++++++++++++\'
 add-content $logfile '            \------------\'
-add-content $logfile 'Pure Storage FlashArray VMware VVols Readiness Checker v2.0 (MARCH-2021)'
+add-content $logfile 'Pure Storage FlashArray VMware VVols Readiness Checker v3.0 (OCTOBER-2024)'
 add-content $logfile '----------------------------------------------------------------------------------------------------'
 
 # Get the PowerCLI Version
 $PowerCLIVersion = Get-Module -Name VMware.PowerCLI -ListAvailable | Select-Object -Property Version
 
-# If the PowerCLI Version is not v10 or higher, recommend that the user install PowerCLI 10 or higher
-If ($PowerCLIVersion.Version.Major -ge "10") {
-    Write-Host "PowerCLI version 10 or higher present, " -NoNewLine
+# If the PowerCLI Version is not v13 or higher, recommend that the user install PowerCLI 13 or higher
+If ($PowerCLIVersion.Version.Major -ge "13") {
+    Write-Host "PowerCLI version 13 or higher present, " -NoNewLine
     Write-Host "proceeding" -ForegroundColor Green 
 } else {
-    Write-Host "PowerCLI version could not be determined or is less than version 10" -Foregroundcolor Red
-    Write-Host "Please install PowerCLI 10 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "PowerCLI version could not be determined or is less than version 13" -Foregroundcolor Red
+    Write-Host "Please install PowerCLI 13 or higher and rerun this script" -Foregroundcolor Yellow
     Write-Host " "
     exit
 }
@@ -327,13 +327,13 @@ If ($vCenterTime.Mode -Like "NTP") {
     } else {
         add-content $logfile "-------------------------------------------------------"
         add-content $logfile "[****NEEDS ATTENTION****] vCSA's NTP settings aren't checkable."
-        add-content $logfile "Check VMware KB for manual process: https://kb.vmware.com/s/article/2113610."        
+        add-content $logfile "Check VMware KB for manual process: https://knowledge.broadcom.com/external/article?articleNumber=313945"        
     }
 
 } else {
     add-content $logfile "*-------------------------------------------------------"
     add-content $logfile "[****NEEDS ATTENTION****] vCSA's NTP settings aren't checkable."
-    add-content $logfile "Check VMware KB for manual process: https://kb.vmware.com/s/article/2113610."        
+    add-content $logfile "Check VMware KB for manual process: https://knowledge.broadcom.com/external/article?articleNumber=313945."        
 }
 
 
@@ -352,9 +352,9 @@ foreach ($esx in $hosts)
     add-content $logfile "Checking ESXi Version"
     add-content $logfile "-------------------------------------------------------"
     # Check for ESXi version
-    if ($esx.version -le [Version]"6.5")
+    if ($esx.version -le [Version]"7.0")
     {
-        add-content $logfile "[****NEEDS ATTENTION****] ESXi 6.5 or later is required for VMware VVols."
+        add-content $logfile "[****NEEDS ATTENTION****] ESXi 7.0U3 or later is required for this script to assess VMware VVols readiness."
     }
     else
     {
@@ -458,7 +458,7 @@ add-content $logfile "-------------------------------------------------------"
 add-content $logfile "Checking Purity Version"
 add-content $logfile "-------------------------------------------------------"
 
-if ($arrayid.version -ge [Version]"5.3.6")
+if ($arrayid.version -ge [Version]"6.5")
 {
     Add-Content $logfile "Purity version supports VVols."
 }
