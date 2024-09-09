@@ -36,7 +36,7 @@ This can be run directly from PowerCLI or from a standard PowerShell prompt. Pow
 Supports:
 -FlashArray //X, //C, //XL
 -vCenter 7.0U3 and later
--PowerCLI VMware PowerCLI 13.3 Build 24145081 or later required
+-PowerCLI VMware PowerCLI 13.3 or later required
 
 #>
 
@@ -165,11 +165,14 @@ $PowerCLIVersion = Get-Module -Name VMware.PowerCLI -ListAvailable | Select-Obje
 
 # If the PowerCLI Version is not v13 or higher, recommend that the user install PowerCLI 13 or higher
 If ($PowerCLIVersion.Version.Major -ge "13") {
-    Write-Host "PowerCLI version 13 or higher present, " -NoNewLine
-    Write-Host "proceeding" -ForegroundColor Green 
+    if ($PowerCLIVersion.Version.Minor -ge "3") {
+        Write-Host "PowerCLI version 13.3 or higher present, " -NoNewLine
+        Write-Host "proceeding" -ForegroundColor Green 
+    }
+    
 } else {
-    Write-Host "PowerCLI version could not be determined or is less than version 13" -Foregroundcolor Red
-    Write-Host "Please install PowerCLI 13 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "PowerCLI version could not be determined or is less than version 13.3" -Foregroundcolor Red
+    Write-Host "Please install PowerCLI 13.3 or higher and rerun this script" -Foregroundcolor Yellow
     Write-Host " "
     exit
 }
