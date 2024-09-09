@@ -1,16 +1,25 @@
 <#
-**********************************************************Disclaimer****************************************************************************************
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+===========================================================================================================================================================
+    Disclaimer
+
+    The sample script and documentation are provided AS IS and are not supported by
+    the author or the author's employer, unless otherwise agreed in writing. You bear
+    all risk relating to the use or performance of the sample script and documentation.
+    The author and the author's employer disclaim all express or implied warranties
+    (including, without limitation, any warranties of merchantability, title, infringement
+    or fitness for a particular purpose). In no event shall the author, the author's employer
+    or anyone else involved in the creation, production, or delivery of the scripts be liable
+    for any damages whatsoever arising out of the use or performance of the sample script and
+    documentation (including, without limitation, damages for loss of business profits,
+    business interruption, loss of business information, or other pecuniary loss), even if
+    such person has been advised of the possibility of such damages.
 
 Original Script: https://github.com/bdwill/vvolsreadinesschecker/blob/master/VVolsReadinessChecker.ps1
 Original Author: Brandon Willmott (@bdwill)
  Updated Script: https://github.com/PureStorage-OpenConnect/VMware-Scripts/blob/master/vVolsReadinessCheckerV2.ps1
- Updated Script: David Stevenes (@PSUStevens)
+ Updated Script: David Stevens (@PSUStevens)
  Updated Date  : 1 October 2024
-************************************************************************************************************************************************************
+===========================================================================================================================================================
 
 This script will:
 --Check for VVols Readiness
