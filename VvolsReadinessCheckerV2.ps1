@@ -37,6 +37,8 @@ Supports:
 -FlashArray //X, //C, //XL
 -vCenter 7.0U3 and later
 -PowerCLI VMware PowerCLI 13.3 or later required
+-Pure Storage PowerShell SDK2 v2.26 or later is required
+-Pure Storage PowerShell Toolkit v3.0 or later is required
 
 #>
 
@@ -159,6 +161,39 @@ add-content $logfile '           \++++++++++++\'
 add-content $logfile '            \------------\'
 add-content $logfile 'Pure Storage FlashArray VMware VVols Readiness Checker v3.0 (OCTOBER-2024)'
 add-content $logfile '----------------------------------------------------------------------------------------------------'
+
+
+# Get the Pure Storage SDK2 version
+$PurePSSDKVersion = Get-Module -Name PureStoragePowerShellSDK2 -ListAvailable | Select-Object -Property Version
+
+# If the Pure Storage SDK Version is not v2.26 or higher, recommend that the user install it or a higher version
+If ($PurePSSDKVersion.Version.Major -ge "2") {
+    if ($PurePSSDKVersion.Version.Minor -ge "26") {
+        Write-Host "Pure Storage SDK version 2.26 or higher present, " -NoNewLine
+        Write-Host "proceeding" -ForegroundColor Green 
+    }
+    
+} else {
+    Write-Host "The Pure Storage SDK version could not be determined or is less than version 2.26" -Foregroundcolor Red
+    Write-Host "Please install the Pure Storage SDK version 2.26 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host " "
+    exit
+}
+
+# Get the Pure Storage PowerShell Toolkit version
+$PurePSToolkitVersion = Get-Module -Name PureStoragePowerShellToolkit -ListAvailable | Select-Object -Property Version
+
+# If the Pure Storage SDK Version is not v3.0 or higher, recommend that the user install it or a higher version
+If ($PurePSToolkitVersion.Version.Major -ge "3") {
+    Write-Host "Pure Storage PowerShell Toolkit version 3.0 or higher present, " -NoNewLine
+    Write-Host "proceeding" -ForegroundColor Green 
+    
+} else {
+    Write-Host "The Pure Storage PowerShell Toolkit version could not be determined or is less than version 3.0" -Foregroundcolor Red
+    Write-Host "Please install the Pure Storage SDK version 3.0 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host " "
+    exit
+}
 
 # Get the PowerCLI Version
 $PowerCLIVersion = Get-Module -Name VMware.PowerCLI -ListAvailable | Select-Object -Property Version
