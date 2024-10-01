@@ -325,7 +325,7 @@ If ($DefaultFlashArray) {
     try
     {
         $FaCredentials = Get-Credential -Message "Please enter the FlashArray Credentials for $($FaEndPoint)"
-        $FlashArray = New-PfaConnection -EndPoint $FaEndpoint -Credentials $FaCredentials -ErrorAction Stop -IgnoreCertificateError -DefaultArray
+        $FlashArray = Connect-Pfa2Array -EndPoint $FaEndPoint -Credential $FaCredentials -ErrorAction Stop -IgnoreCertificateError
         $ConnectFA = $True
     }
     catch
@@ -342,7 +342,6 @@ If ($DefaultFlashArray) {
     }
 
 }
-
 
 $errorHosts = @()
 write-host "Executing..."
@@ -442,7 +441,7 @@ else
 
 
     # Check for NTP daemon running and enabled
-    $ntpSettings = $esx | Get-VMHostService | Where-Object {$_.key -eq "ntpd"} | select vmhost, policy, running
+    $ntpSettings = $esx | Get-VMHostService | Where-Object {$_.key -eq "ntpd"} | Select-Object vmhost, policy, running
 
     if ($ntpSettings."policy" -contains "off")
     {
@@ -462,6 +461,27 @@ else
         Add-Content $logfile "[****NEEDS ATTENTION****] NTP daemon is not running."
     }
 }
+
+<#
+# Capture all of the storage providers of the current vCenter
+
+$storageProviders = Get-StorageProvider
+
+# Output the details of each storage provider
+foreach ($provider in $storageProviders) {
+    [PSCustomObject]@{
+        Name              = $provider.Name
+        Description       = $provider.Description
+        Type              = $provider.Type
+        Uri               = $provider.Uri
+        Status            = $provider.Status
+        ProviderCategory  = $provider.ProviderCategory
+    }
+
+    Add-Content $logfile ""
+    Add-Content $logfile 
+}
+#>
 
 # Check FlashArray's NTP Settings
 $ArrayId = New-PfaRestOperation -ResourceType array -RestOperationType GET -Flasharray $DefaultFlashArray -SkipCertificateCheck
