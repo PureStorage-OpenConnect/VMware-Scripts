@@ -27,7 +27,6 @@ This script will:
 --Check for vCenter 7.0U3+ and ESXi 7.0U3+ (7.0 Update 3 is highly recommended)
 --Check that FlashArray is accessible on TCP port 8084
 --Check that a NTP server is set, valid, and daemon running on ESXi hosts and FlashArray
---Check for replication, remote side needs to meet above criteria too!
 
 All information logged to a file.
 
@@ -263,7 +262,6 @@ Write-Host ""
 Write-Host "Script result log can be found at $Logfile" -ForegroundColor Green
 Write-Host ""
 Add-Content $Logfile "Connected to vCenter: $($Global:DefaultVIServer)"
-Add-Content $Logfile '----------------------------------------------------------------------------------------------------'
 
 # Choose to run the script against all hosts connected to a vCenter Server, or a single cluster
 Do{ $vSphereClusterChoice = Read-Host "Would you prefer to limit this to hosts in a specific cluster? (y/n)" }
@@ -307,7 +305,7 @@ if ($vSphereClusterChoice -match "[yY]") {
     Write-Host $vSphereCluster -ForegroundColor Green
     Write-Host ""
 
-    # Assign all of the ESX hosts in $Cluster to the $ESXHosts variable, and sort the list alphabetically
+    # Assign all of the ESX hosts in $vSphereCluster to the $ESXHosts variable, and sort the list alphabetically
     $ESXHosts = $vSphereCluster | Get-VMHost | Sort-Object Name
 
 }  else {
@@ -335,9 +333,9 @@ If ($DefaultFlashArray.ArrayName) {
         write-host "Failed to connect to FlashArray" -BackgroundColor Red
         write-host $Error
         write-host "Terminating Script" -BackgroundColor Red
-        add-content $logfile "Failed to connect to FlashArray"
+        add-content $logfile "**********  Failed to connect to FlashArray  **********"
         add-content $logfile $Error
-        add-content $logfile "Terminating Script"
+        add-content $logfile "**********  Terminating Script  **********"
         $ConnectFA = $False
 
         return
@@ -345,13 +343,17 @@ If ($DefaultFlashArray.ArrayName) {
 
 }
 
-$errorHosts = @()
+#$errorHosts = @()
 write-host "Executing..."
 
 # Check vCenter version
-add-content $logfile "Working on the following vCenter: $($global:DefaultVIServers.name), version $($Global:DefaultVIServers.Version)"
-add-content $logfile "-----------------------------------------------------------------------------------------------"
-add-content $logfile "Checking vCenter Version"
+add-content $logfile ""
+add-content $logfile "***********************************************************************************************"
+add-content $logfile ""
+add-content $logfile "Working on the following vCenter: $($global:DefaultVIServers.Name), version $($Global:DefaultVIServers.Version)"
+add-content $logfile ""
+add-content $logfile "***********************************************************************************************"
+add-content $logfile "             Checking vCenter Version"
 add-content $logfile "-------------------------------------------------------"
 if ($global:DefaultVIServers.version -le [Version]"6.5")
 {
@@ -368,19 +370,19 @@ $vCenterTime = Get-VamiTime
 
 If ($vCenterTime.Mode -Like "NTP") {
     add-content $logfile "-----------------------------------------------------------------------------------------------"
-    add-content $logfile "vCSA NTP "
+    add-content $logfile "                     vCSA NTP "
     add-content $logfile "-------------------------------------------------------"
     If ($vCenterTime.NTPStatus -eq "SERVER_REACHABLE") {
         add-content $logfile "NTP server set to $($vCenterTime.NTPServers) and is REACHABLE from vCenter"
     } else {
         add-content $logfile "-------------------------------------------------------"
-        add-content $logfile "[****NEEDS ATTENTION****] vCSA's NTP settings aren't checkable."
+        add-content $logfile "[****NEEDS ATTENTION****] NTP settings aren't checkable from the vCenter Appliance."
         add-content $logfile "Check VMware KB for manual process: https://knowledge.broadcom.com/external/article?articleNumber=313945"        
     }
 
 } else {
     add-content $logfile "*-------------------------------------------------------"
-    add-content $logfile "[****NEEDS ATTENTION****] vCSA's NTP settings aren't checkable."
+    add-content $logfile "[****NEEDS ATTENTION****] NTP settings aren't checkable from the vCenter Appliance."
     add-content $logfile "Check VMware KB for manual process: https://knowledge.broadcom.com/external/article?articleNumber=313945."        
 }
 
@@ -393,11 +395,11 @@ foreach ($esx in $ESXHosts)
 {
     add-content $logfile ""
     add-content $logfile "***********************************************************************************************"
-    add-content $logfile "**********************************NEXT ESXi HOST***********************************************"
-    add-content $logfile "-----------------------------------------------------------------------------------------------"
-    add-content $logfile "Working on the following ESXi host: $($esx.Name), version $($esx.Version)"
-    add-content $logfile "-----------------------------------------------------------------------------------------------"
-    add-content $logfile "Checking ESXi Version"
+    add-content $logfile ""
+    add-content $logfile "   Working on the following ESXi host: $($esx.Name), version $($esx.Version)"
+    add-content $logfile ""
+    add-content $logfile "***********************************************************************************************"
+    add-content $logfile "                Checking ESXi Version"
     add-content $logfile "-------------------------------------------------------"
     # Check for ESXi version
     if ($esx.version -le [Version]"7.0")
@@ -410,7 +412,7 @@ foreach ($esx in $ESXHosts)
     }
     add-content $logfile ""
     add-content $logfile "-------------------------------------------------------"
-    add-content $logfile "Checking NTP settings"
+    add-content $logfile "               Checking NTP settings"
     add-content $logfile "-------------------------------------------------------"
 
     # Check for NTP server configuration
@@ -419,11 +421,11 @@ foreach ($esx in $ESXHosts)
 $ntpServer = Get-VMHostNtpServer -VMHost $esx
 if ($ntpServer -eq $null)
 {
-   Add-Content $logfile "[****NEEDS ATTENTION****] NTP server for this ESXi host is null. Configure an NTP server before proceeding with VVols."
+   Add-Content $logfile "[****NEEDS ATTENTION****] NTP server for this ESXi host is empty. Configure an NTP server before proceeding with VVols."
 }
 else
 {
-    Add-Content $logfile "NTP server set to $($ntpServer)"
+    Add-Content $logfile "   NTP server set to $($ntpServer)"
     If ($PSEdition -eq "Core") {
         $testNetConnection = Test-Connection -TargetName $ntpserver 
     } else {
@@ -433,11 +435,11 @@ else
 
     if (!$testNetConnection)
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with NTP server from this console. Check that it is valid and accessible."
+        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with the NTP server from this console. Check that it is valid and accessible."
     }
     else
     {
-        Add-Content $logfile "NTP server is valid and accessible."
+        Add-Content $logfile "   NTP server is valid and accessible."
     }
 }
 
@@ -447,16 +449,16 @@ else
 
     if ($ntpSettings."policy" -contains "off")
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] NTP daemon not enabled. Enable service in the ESXi host configuration."
+        Add-Content $logfile "[****NEEDS ATTENTION****] NTP daemon is not enabled. Enable the service in the ESXi host configuration."
     }
     else
     {
-     Add-Content $logfile "NTP daemon is enabled."
+     Add-Content $logfile "   NTP daemon is enabled."
     }
 
     if ($ntpSettings."running" -contains "true")
     {
-        Add-Content $logfile "NTP daemon is running."
+        Add-Content $logfile "   NTP daemon is running."
     }
     else
     {
@@ -489,13 +491,13 @@ foreach ($provider in $storageProviders) {
 $FlashArray = get-pfa2array -array $DefaultFlashArray
 add-content $logfile ""
 add-content $logfile "***********************************************************************************************"
-add-content $logfile "*****************************     FLASHARRAY     **********************************************"
-add-content $logfile "-----------------------------------------------------------------------------------------------"
-add-content $logfile "Working on the following FlashArray: $($Flasharray.Name), Purity version $($Flasharray.Version)"
-add-content $logfile "-----------------------------------------------------------------------------------------------"
+add-content $logfile ""
+add-content $logfile "   Working on the following FlashArray: $($Flasharray.Name), Purity version $($Flasharray.Version)"
+add-content $logfile ""
+add-content $logfile "***********************************************************************************************"
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
-add-content $logfile "             Checking NTP Setting"
+add-content $logfile "                Checking NTP Setting"
 add-content $logfile "-------------------------------------------------------"
 $FlashArrayNTP = get-pfa2ArrayNtpTest -Array $DefaultFlashArray
 if (!$flashArrayNTP.Enabled) 
@@ -509,7 +511,7 @@ else
     
     if (!$flashArrayNTP.Success)
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with NTP server from this FlashArray. Check that it is valid and accessible."
+        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with an NTP server from this FlashArray. Check that it is valid and accessible."
 
     }
     else
@@ -520,7 +522,7 @@ else
 # Check Purity version
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
-add-content $logfile "Checking Purity Version"
+add-content $logfile "                Checking Purity Version"
 add-content $logfile "-------------------------------------------------------"
 
 if ($Flasharray.Version -ge [Version]"6.5")
@@ -535,7 +537,7 @@ else
 # Check TCP port 8084 reachability
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
-add-content $logfile "Checking FlashArray Reachability on TCP port 8084"
+add-content $logfile "   Checking FlashArray Reachability on TCP port 8084"
 add-content $logfile "-------------------------------------------------------"
 
 $Interfaces = Get-Pfa2NetworkInterface -array $DefaultFlashArray | Where-Object {$_.services -Like "management"} | Where-Object {$_.name -Like "ct*"} | Where-Object {$_.enabled -eq "True"}
@@ -578,12 +580,14 @@ for ($x=0; $x -lt $PureHostGroups.count; $x++)
 
 if ($PureHostGroups.count -gt 0 -or $PureHosts -gt 0)
 {
-    Add-Content $logfile "FlashArray has $($PureHostGroups.count) Pure Host Groups set."
-    Add-Content $logfile "FlashArray has $($PureHosts) Pure Host Objects set."
+        Add-Content $logfile "FlashArray has $($PureHosts) Pure Host Objects set."
+        Add-Content $logfile "FlashArray has $($PureHostGroups.count) Pure Host Groups set."
+        add-content $logfile "***********************************************************************************************"
+        Add-Content $logfile ""
 }
 else
 {
-    Add-Content $logfile "[****NEEDS ATTENTION****] FlashArray does not have any hosts or host groups configured."
+    Add-Content $logfile "[****NEEDS ATTENTION****] FlashArray does not have any Pure Host Objects or Pure Host Groups configured."
 }
 <#
 # Check for replication
