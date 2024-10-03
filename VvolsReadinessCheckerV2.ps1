@@ -136,7 +136,7 @@ Function Get-VAMITime {
 
 #Create log if non-existent
 $Currentpath = split-path -parent $MyInvocation.MyCommand.Definition 
-$Logfile = $Currentpath + '\PureStorage-vSphere-' + (Get-Date -Format o |Foreach-Object {$_ -Replace ':', '.'}) + "-checkbestvvolreadiness.log"
+$Logfile = $Currentpath + '\PureStorage-vSphere-CheckvVolReadiness-' + (Get-Date -Format o |Foreach-Object {$_ -Replace ':', '.'}) + ".log"
 
 add-content $logfile '             __________________________'
 add-content $logfile '            /++++++++++++++++++++++++++\'
@@ -159,8 +159,10 @@ add-content $logfile '         \++++++++++++\'
 add-content $logfile '          \++++++++++++\'
 add-content $logfile '           \++++++++++++\'
 add-content $logfile '            \------------\'
-add-content $logfile 'Pure Storage FlashArray VMware VVols Readiness Checker v3.0 (OCTOBER-2024)'
+Add-Content $Logfile ' '
+add-content $logfile '          Pure Storage FlashArray and VMware VVols Readiness Checker v3.0 (OCTOBER-2024)'
 add-content $logfile '----------------------------------------------------------------------------------------------------'
+Add-Content $Logfile ' '
 
 
 # Get the Pure Storage SDK2 version
@@ -190,7 +192,7 @@ If ($PurePSToolkitVersion.Version.Major -ge "3") {
     
 } else {
     Write-Host "The Pure Storage PowerShell Toolkit version could not be determined or is less than version 3.0" -Foregroundcolor Red
-    Write-Host "Please install the Pure Storage SDK version 3.0 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "Please install the Pure Storage Toolkit version 3.0 or higher and rerun this script" -Foregroundcolor Yellow
     Write-Host " "
     exit
 }
@@ -222,7 +224,7 @@ If ($Global:DefaultVIServer) {
     Write-Host $Global:DefaultVIServer -ForegroundColor Green
     If ($Global:DefaultVIServer.Name -eq $Global:DefaultCisServers.Name) {
         Write-Host "Connected to " -NoNewline
-        Write-Host $Global:DefaultCisServers -ForegroundColor Green -NoNewline
+        Write-Host $Global:DefaultCisServers.Name -ForegroundColor Green -NoNewline
         Write-Host " vSphere Automation SDK"
         $ConnectCiS = $False
     } else {
@@ -239,7 +241,7 @@ If ($Global:DefaultVIServer) {
         Write-Host "Connected to $VIFQDN" -ForegroundColor Green 
         $ConnectVc = $True
         If ($Global:DefaultVIServer.Name -eq $Global:DefaultCisServers.Name) {
-            Write-Host "Connected to " -NoNewline
+            Write-Host "Connected to:  " -NoNewline
             Write-Host $Global:DefaultCisServers.Name -ForegroundColor Green -NoNewline
             Write-Host " vSphere Automation SDK"
         } else {
@@ -260,20 +262,20 @@ If ($Global:DefaultVIServer) {
 Write-Host ""
 Write-Host "Script result log can be found at $Logfile" -ForegroundColor Green
 Write-Host ""
-Add-Content $Logfile "Connected to vCenter at $($Global:DefaultVIServer)"
+Add-Content $Logfile "Connected to vCenter: $($Global:DefaultVIServer)"
 Add-Content $Logfile '----------------------------------------------------------------------------------------------------'
 
 # Choose to run the script against all hosts connected to a vCenter Server, or a single cluster
-Do{ $clusterChoice = Read-Host "Would you prefer to limit this to hosts in a specific cluster? (y/n)" }
-Until($clusterChoice -eq "Y" -or $clusterChoice -eq "N")
+Do{ $vSphereClusterChoice = Read-Host "Would you prefer to limit this to hosts in a specific cluster? (y/n)" }
+Until($vSphereClusterChoice -eq "Y" -or $vSphereClusterChoice -eq "N")
 
 # Choose a single cluster
-if ($clusterChoice -match "[yY]") {
-    # Retrieve the clusters & sort them alphabetically 
-    $clusters = Get-Cluster | Sort-Object Name
+if ($vSphereClusterChoice -match "[yY]") {
+    # Retrieve the vSphere clusters & sort them alphabetically 
+    $vSphereClusters = Get-Cluster | Sort-Object Name
 
-    # If no clusters are found, exit the script
-    if ($clusters.count -lt 1)
+    # If no vSphere Clusters are found, exit the script
+    if ($vSphereClusters.count -lt 1)
     {
         Add-Content $Logfile "Terminating Script. No VMware cluster(s) found."  
         Write-Host "No VMware cluster(s) found. Terminating Script" -BackgroundColor Red
@@ -281,11 +283,11 @@ if ($clusterChoice -match "[yY]") {
     }
 
     # Select the Cluster
-    Write-Host "1 or more clusters were found. Please choose a cluster:"
+    Write-Host "1 or more VMware Clusters were found. Please choose a cluster:"
     Write-Host ""
 
     # Enumerate the cluster(s)
-    1..$Clusters.Length | Foreach-Object { Write-Host $($_)":"$Clusters[$_-1]}
+    1..$vSphereClusters.Length | Foreach-Object { Write-Host $($_)":"$vSphereClusters[$_-1]}
 
     # Wait until a valid cluster is picked
     Do
@@ -293,39 +295,39 @@ if ($clusterChoice -match "[yY]") {
         Write-Host # empty line
         $Global:ans = (Read-Host 'Please select a cluster') -as [int]
     
-    } While ((-not $ans) -or (0 -gt $ans) -or ($Clusters.Length+1 -lt $ans))
+    } While ((-not $ans) -or (0 -gt $ans) -or ($vSphereClusters.Length+1 -lt $ans))
 
-    # Assign the $Cluster variable to the Cluster picked
-    $Cluster = $clusters[($ans-1)]
+    # Assign the $vSphereCluster variable to the Cluster picked
+    $vSphereCluster = $vSphereClusters[($ans-1)]
 
     # Log/Enumerate which cluser was selected
-    Add-Content $Logfile "Selected cluster is $($Cluster)"
+    Add-Content $Logfile "Selected cluster is: $($vSphereCluster)"
     Add-Content $Logfile ""
     Write-Host "Selected cluster is " -NoNewline 
-    Write-Host $Cluster -ForegroundColor Green
+    Write-Host $vSphereCluster -ForegroundColor Green
     Write-Host ""
 
-    # Assign all of the hosts in $Cluster to the $Hosts variable, and sort the list alphabetically
-    $Hosts = $Cluster | Get-VMHost | Sort-Object Name
+    # Assign all of the ESX hosts in $Cluster to the $ESXHosts variable, and sort the list alphabetically
+    $ESXHosts = $vSphereCluster | Get-VMHost | Sort-Object Name
 
 }  else {
 
-    # Because individual clusters were not selected
-    # Assign all of the hosts vCenter manages into the $Hosts variable & sort them alphabetically
-    $Hosts = Get-VMHost | Sort-Object Name 
+    # Because individual vSphereClusters were not selected
+    # Assign all of the ESX hosts vCenter manages into the $ESXHosts variable & sort them alphabetically
+    $ESXHosts = Get-VMHost | Sort-Object Name 
 }
 
-If ($DefaultFlashArray) {
-    Write-Host "Defaulting to FlashArray: $($DefaultFlashArray.Endpoint) "
-    Add-Content $Logfile "Defaulting to FlashArray: $($DefaultFlashArray.Endpoint)"
-    $ConnectFA = $False
+If ($DefaultFlashArray.ArrayName) {
+    Write-Host "Defaulting to FlashArray: $($DefaultFlashArray.ArrayName) "
+    Add-Content $Logfile "Defaulting to FlashArray: $($DefaultFlashArray.ArrayName)"
+    $ConnectFA = $True
 } else {
     #connect to FlashArray
     $FaEndPoint = Read-Host "Please enter a FlashArray IP or FQDN"
     try
     {
         $FaCredentials = Get-Credential -Message "Please enter the FlashArray Credentials for $($FaEndPoint)"
-        $FlashArray = Connect-Pfa2Array -EndPoint $FaEndPoint -Credential $FaCredentials -ErrorAction Stop -IgnoreCertificateError
+        $DefaultFlashArray = Connect-Pfa2Array -EndPoint $FaEndPoint -Credential $FaCredentials -ErrorAction Stop -IgnoreCertificateError
         $ConnectFA = $True
     }
     catch
@@ -383,11 +385,11 @@ If ($vCenterTime.Mode -Like "NTP") {
 }
 
 
-# Iterating through each host in the vCenter
+# Iterating through each ESX host in the vCenter
 add-content $logfile ""
-add-content $logfile "Iterating through all ESXi hosts in cluster $clusterName..."
-$hosts | out-string | add-content $logfile
-foreach ($esx in $hosts)
+add-content $logfile "Iterating through all ESXi hosts in the cluster $clusterName..."
+$ESXHosts | out-string | add-content $logfile
+foreach ($esx in $ESXHosts)
 {
     add-content $logfile ""
     add-content $logfile "***********************************************************************************************"
@@ -417,7 +419,7 @@ foreach ($esx in $hosts)
 $ntpServer = Get-VMHostNtpServer -VMHost $esx
 if ($ntpServer -eq $null)
 {
-   Add-Content $logfile "[****NEEDS ATTENTION****] NTP server for this host is null. Configure an NTP server before proceeding with VVols."
+   Add-Content $logfile "[****NEEDS ATTENTION****] NTP server for this ESXi host is null. Configure an NTP server before proceeding with VVols."
 }
 else
 {
@@ -445,7 +447,7 @@ else
 
     if ($ntpSettings."policy" -contains "off")
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] NTP daemon not enabled. Enable service in host configuration."
+        Add-Content $logfile "[****NEEDS ATTENTION****] NTP daemon not enabled. Enable service in the ESXi host configuration."
     }
     else
     {
@@ -484,39 +486,35 @@ foreach ($provider in $storageProviders) {
 #>
 
 # Check FlashArray's NTP Settings
-$ArrayId = New-PfaRestOperation -ResourceType array -RestOperationType GET -Flasharray $DefaultFlashArray -SkipCertificateCheck
+$FlashArray = get-pfa2array -array $DefaultFlashArray
 add-content $logfile ""
 add-content $logfile "***********************************************************************************************"
-add-content $logfile "**********************************FLASHARRAY***************************************************"
+add-content $logfile "*****************************     FLASHARRAY     **********************************************"
 add-content $logfile "-----------------------------------------------------------------------------------------------"
-add-content $logfile "Working on the following FlashArray: $($DefaultFlasharray.EndPoint), Purity version $($ArrayId.version)"
+add-content $logfile "Working on the following FlashArray: $($Flasharray.Name), Purity version $($Flasharray.Version)"
 add-content $logfile "-----------------------------------------------------------------------------------------------"
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
-add-content $logfile "Checking NTP Setting"
+add-content $logfile "             Checking NTP Setting"
 add-content $logfile "-------------------------------------------------------"
-$FlashArrayNTP = New-PfaRestOperation -ResourceType array  -RestOperationType GET -queryFilter "?ntpserver=true" -Flasharray $DefaultFlashArray -SkipCertificateCheck
-if (!$flashArrayNTP.ntpserver)
+$FlashArrayNTP = get-pfa2ArrayNtpTest -Array $DefaultFlashArray
+if (!$flashArrayNTP.Enabled) 
 {
     Add-Content $logfile "[****NEEDS ATTENTION****] FlashArray does not have an NTP server configured."
 }
 else
 {
-    Add-Content $logfile "FlashArray has the following NTP server configured: $($flasharrayNTP.ntpserver)"
-    If ($PSEdition -eq "Core") {
-        $testNetConnection = Test-Connection -TargetName $FlashArrayNTP.ntpserver
-    } else {
-        $testNetConnection = Test-NetConnection -ComputerName $FlashArrayNTP.$ntpServer -InformationLevel Quiet
-    }
-
-    if (!$testNetConnection)
+    # Iterate through both controllers to confirm they can reach the configured NTP servers
+    Add-Content $logfile "FlashArray has the following NTP server(s) configured: $($FlashArray.NtpServers)"
+    
+    if (!$flashArrayNTP.Success)
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with NTP server from this console. Check that it is valid and accessible."
+        Add-Content $logfile "[****NEEDS ATTENTION****] Could not communicate with NTP server from this FlashArray. Check that it is valid and accessible."
 
     }
     else
     {
-        Add-Content $logfile "NTP server is valid and accessible."
+        Add-Content $logfile "NTP server(s) are valid and accessible."
     }
 }
 # Check Purity version
@@ -525,7 +523,7 @@ add-content $logfile "-------------------------------------------------------"
 add-content $logfile "Checking Purity Version"
 add-content $logfile "-------------------------------------------------------"
 
-if ($arrayid.version -ge [Version]"6.5")
+if ($Flasharray.Version -ge [Version]"6.5")
 {
     Add-Content $logfile "Purity version supports VVols."
 }
@@ -540,21 +538,20 @@ add-content $logfile "-------------------------------------------------------"
 add-content $logfile "Checking FlashArray Reachability on TCP port 8084"
 add-content $logfile "-------------------------------------------------------"
 
-#$interfaces = get-pfanetworkinterfaces -array $DefaultFlashArray | Where-Object { $_.services -like "management" }  | where-object {$_.name -like "ct*"}
-$Interfaces = New-PfaRestOperation -ResourceType network  -RestOperationType GET  -Flasharray $DefaultFlashArray -SkipCertificateCheck | Where-Object {$_.services -Like "management"} | Where-Object {$_.name -Like "ct*"} | Where-Object {$_.enabled -eq "True"}
+$Interfaces = Get-Pfa2NetworkInterface -array $DefaultFlashArray | Where-Object {$_.services -Like "management"} | Where-Object {$_.name -Like "ct*"} | Where-Object {$_.enabled -eq "True"}
 $i = 0
 foreach ($interface in $interfaces)
 {
 
     If ($PSEdition -eq "Core") {
-        $testNetConnection = Test-Connection -TargetName $interfaces[$i].address -TcpPort 8084 
+        $testNetConnection = Test-Connection -TargetName $interfaces[$i].eth.address -TcpPort 8084 
     } else {
-        $testNetConnection = Test-NetConnection -ComputerName $interfaces[$i].address -Port 8084 -InformationLevel Quiet
+        $testNetConnection = Test-NetConnection -ComputerName $interfaces[$i].eth.address -Port 8084 -InformationLevel Quiet
     }
 
     if (!$testNetConnection)
     {
-        add-content $logfile "[****NEEDS ATTENTION****] Could not reach FlashArray management port $($interface.name), IP: $($interfaces[$i].address) on TCP port 8084."
+        add-content $logfile "[****NEEDS ATTENTION****] Could not reach FlashArray management port $($interface.name), IP: $($interfaces[$i].eth.address) on TCP port 8084."
 
     }
     else
@@ -564,48 +561,60 @@ foreach ($interface in $interfaces)
     $i += 1
 }
 
-# Check for existance of hosts and host groups
+# Check for existance of Pure Storage hosts and Pure Storage host groups
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
-add-content $logfile "Checking for Hosts and Host Groups"
+add-content $logfile "    Checking for Pure Storage Hosts and Host Groups"
 add-content $logfile "-------------------------------------------------------"
-$HostGroups = New-PfaRestOperation -ResourceType hgroup  -RestOperationType GET  -Flasharray $DefaultFlashArray -SkipCertificateCheck
-if ($hostGroups.count -gt 0 -or $hostGroups.hosts.count -gt 0)
+
+$PureHostGroups = Get-Pfa2HostGroup -array $DefaultFlashArray
+$PureHosts = 0
+
+# Sum up the total number of Pure hosts in all of the Pure Host Groups
+for ($x=0; $x -lt $PureHostGroups.count; $x++)
 {
-    Add-Content $logfile "FlashArray has host groups set."
-    Add-Content $logfile "FlashArray has hosts set."
+    $PureHosts += $PureHostGroups.hostcount[$x]
+}
+
+if ($PureHostGroups.count -gt 0 -or $PureHosts -gt 0)
+{
+    Add-Content $logfile "FlashArray has $($PureHostGroups.count) Pure Host Groups set."
+    Add-Content $logfile "FlashArray has $($PureHosts) Pure Host Objects set."
 }
 else
 {
-    Add-Content $logfile "[****NEEDS ATTENTION****] FlashArray does not have any host or host groups configured."
+    Add-Content $logfile "[****NEEDS ATTENTION****] FlashArray does not have any hosts or host groups configured."
 }
-
+<#
 # Check for replication
 add-content $logfile ""
 add-content $logfile "-------------------------------------------------------"
 add-content $logfile "Checking for Replication"
 add-content $logfile "-------------------------------------------------------"
-#$pgroups = Get-PfaProtectionGroups -Array $DefaultFlashArray | where-object {$_.targets.count -ge 1}
-$PGroups = New-PfaRestOperation -ResourceType pgroup  -RestOperationType GET  -Flasharray $DefaultFlashArray -SkipCertificateCheck | Where-Object {$_.targets.count -ge 1}
-if ($pgroups -eq $null)
+
+#$PGroups = New-PfaRestOperation -ResourceType pgroup  -RestOperationType GET  -Flasharray $DefaultFlashArray -SkipCertificateCheck | Where-Object {$_.targets.count -ge 1}
+$PurePGroups = Get-Pfa2ProtectionGroup -Array $DefaultFlashArray 
+if ($PurePGroups.count -eq $null)
 {
     Add-Content $logfile "Ok, no replicated protection groups found."
 }
 
 else
 {
-    foreach ($pgroup in $pgroups)
+    foreach ($PurePGroup in $PurePGroups)
     {
-        Add-Content $logfile "[****NEEDS ATTENTION****] Protection Group $($pgroup.name) replicates to $($pgroup.targets.name). Run this script on the remote side before proceeding with VVols."
+        Add-Content $logfile "[****NEEDS ATTENTION****] Protection Group $($PurePGroup.Name) replicates to $($PurePGroup.targets.name). Run this script on the remote side before proceeding with VVols."
     }
 }
-
+#>
 If ($ConnectFA -eq $true) {
-    Disconnect-PfaArray -Array $DefaultFlashArray
-    Add-Content $Logfile "Disconnected from FlashArray connection"
+    Disconnect-Pfa2Array -Array $DefaultFlashArray
+    Add-Content $Logfile ""
+    Add-Content $Logfile "Disconnected from FlashArray:  $($Flasharray.Name)"
 }
 
 If ($ConnectVc -eq $true) {
     Disconnect-VIserver -Server $VIFQDN -confirm:$false
-    Add-Content $Logfile "Disconnected from vCenter connection"
+    Add-Content $Logfile ""
+    Add-Content $Logfile "Disconnected from vCenter:  $($Global:DefaultCisServers.Name)"
 }
