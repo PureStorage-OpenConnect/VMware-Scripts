@@ -165,50 +165,49 @@ Add-Content $Logfile ' '
 
 
 # Get the Pure Storage SDK2 version
-$PurePSSDKVersion = Get-Module -Name PureStoragePowerShellSDK2 -ListAvailable | Select-Object -Property Version
+#$PurePSSDKVersion = Get-Module -Name PureStoragePowerShellSDK2 -ListAvailable | Select-Object -Property Version
 
 # If the Pure Storage SDK Version is not v2.26 or higher, recommend that the user install it or a higher version
-If ($PurePSSDKVersion.Version.Major -ge "2") {
-    if ($PurePSSDKVersion.Version.Minor -ge "26") {
+If (Get-Module -ListAvailable PureStoragePowerShellSDK2 | Where-Object -Property version -cge "2.26") {
         Write-Host "Pure Storage SDK version 2.26 or higher present, " -NoNewLine
-        Write-Host "proceeding" -ForegroundColor Green 
-    }
+        Write-Host " "
+        #Write-Host "proceeding" -ForegroundColor Green 
     
 } else {
-    Write-Host "The Pure Storage SDK version could not be determined or is less than version 2.26" -Foregroundcolor Red
-    Write-Host "Please install the Pure Storage SDK version 2.26 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "The Pure Storage SDK version could not be determined or is less than version 2.26" -ForegroundColor Red
+    Write-Host "Please install the Pure Storage SDK version 2.26 or higher and rerun this script" -ForegroundColor Yellow
     Write-Host " "
     exit
 }
 
 # Get the Pure Storage PowerShell Toolkit version
-$PurePSToolkitVersion = Get-Module -Name PureStoragePowerShellToolkit -ListAvailable | Select-Object -Property Version
+#$PurePSToolkitVersion = Get-Module -Name PureStoragePowerShellToolkit -ListAvailable | Select-Object -Property Version
 
 # If the Pure Storage SDK Version is not v3.0 or higher, recommend that the user install it or a higher version
-If ($PurePSToolkitVersion.Version.Major -ge "3") {
+If (Get-Module -ListAvailable PureStoragePowerShellToolkit | Where-Object -Property version -cge "3.0") {
     Write-Host "Pure Storage PowerShell Toolkit version 3.0 or higher present, " -NoNewLine
-    Write-Host "proceeding" -ForegroundColor Green 
+    Write-Host " "
+    #Write-Host "proceeding" -ForegroundColor Green 
     
 } else {
-    Write-Host "The Pure Storage PowerShell Toolkit version could not be determined or is less than version 3.0" -Foregroundcolor Red
-    Write-Host "Please install the Pure Storage Toolkit version 3.0 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "The Pure Storage PowerShell Toolkit version could not be determined or is less than version 3.0" -ForegroundColor Red
+    Write-Host "Please install the Pure Storage Toolkit version 3.0 or higher and rerun this script" -ForegroundColor Yellow
     Write-Host " "
     exit
 }
 
 # Get the PowerCLI Version
-$PowerCLIVersion = Get-Module -Name VMware.PowerCLI -ListAvailable | Select-Object -Property Version
+#$PowerCLIVersion = Get-Module -Name VMware.PowerCLI -ListAvailable | Select-Object -Property Version
 
 # If the PowerCLI Version is not v13 or higher, recommend that the user install PowerCLI 13 or higher
-If ($PowerCLIVersion.Version.Major -ge "13") {
-    if ($PowerCLIVersion.Version.Minor -ge "3") {
-        Write-Host "PowerCLI version 13.3 or higher present, " -NoNewLine
-        Write-Host "proceeding" -ForegroundColor Green 
-    }
+If (Get-Module -ListAvailable VMware.PowerCLI | Where-Object -Property version -cge "13.0") {
+        Write-Host "PowerCLI version 13.0 or higher present, " -NoNewLine
+        Write-Host " "
+        #Write-Host "proceeding" -ForegroundColor Green 
     
 } else {
     Write-Host "PowerCLI version could not be determined or is less than version 13.3" -Foregroundcolor Red
-    Write-Host "Please install PowerCLI 13.3 or higher and rerun this script" -Foregroundcolor Yellow
+    Write-Host "Please install PowerCLI 13.0 or higher and rerun this script" -Foregroundcolor Yellow
     Write-Host " "
     exit
 }
