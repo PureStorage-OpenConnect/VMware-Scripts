@@ -550,7 +550,7 @@ add-content $logfile "-------------------------------------------------------"
 add-content $logfile "                Checking Purity Version"
 add-content $logfile "-------------------------------------------------------"
 
-if ($Flasharray.Version -ge [Version]"6.5")
+if ($Flasharray.Version -ge [Version]"5.3.6")
 {
     Add-Content $logfile "Purity version supports VVols."
 }
