@@ -1,0 +1,15 @@
+# Visual Studio Code bits to ignore
+.vscode/*
+!.vscode/settings.json
+!.vscode/launch.json
+
+# Local History for Visual Studio Code
+.history
+
+# Windows files
+Thumbs.db
+*.lnk
+$RECYCLE.BIN/
+
+# MacOS files
+.DS_Store
